@@ -1,0 +1,32 @@
+services:
+  spring-app:
+    build: .
+    container_name: ai-quiz-app
+    depends_on:
+      - ai-llm
+    networks:
+      - ai-network
+  ai-llm:
+    image: ollama/ollama
+    container_name: ai-quiz-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - ai-network
+  quiz-db:
+    image: postgres:16
+    container_name: ai-quiz-postgres
+    environment:
+      POSTGRES_USER: quiz_user
+      POSTGRES_PASSWORD: quiz_pass
+      POSTGRES_DB: quiz_ai
+    ports:
+      - "5433:5432"
+    volumes:
+      - quiz_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+networks:
+  ai-network:
+
