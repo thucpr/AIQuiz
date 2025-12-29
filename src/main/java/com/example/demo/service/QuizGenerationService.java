@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -76,20 +77,19 @@ public class QuizGenerationService {
     private List<QuizQuestion> generateQuestionsFromChunk(String chunk, QuizGenerationRequest req, int questionCount) throws Exception {
         String prompt = buildPrompt(chunk, req, questionCount);
 
-        OllamaRequest ollamaReq =
-                OllamaRequest.builder().prompt(prompt)
+        OllamaRequest ollamaReq = OllamaRequest.builder()
+                .prompt(prompt)
                 .model("llama3.2:3b")
                 .stream(true)
                 .build();
-
-
-        OllamaResponse resp = restTemplate.postForObject(OLLAMA_URL, ollamaReq, OllamaResponse.class);
-
-        if (resp == null || resp.getResponse() == null || resp.getResponse().isBlank())
+        String rawResp = restTemplate.postForObject(OLLAMA_URL, ollamaReq, String.class);
+        if (rawResp == null || rawResp.isBlank())
             return Collections.emptyList();
+        rawResp = new String(rawResp.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
 
-        return quizUtil.parseQuizQuestionsSafely(resp.getResponse());
+        return quizUtil.parseOllamaStreamNDJSON(rawResp);
     }
+
 
     private void saveQuiz(Document doc, QuizGenerationRequest req, List<QuizQuestion> questions) throws JsonProcessingException {
 
